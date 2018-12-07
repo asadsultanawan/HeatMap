@@ -17,9 +17,9 @@
 package com.example.abdul.heatmap;
 
 import android.graphics.Color;
-import android.support.v4.app.FragmentActivity;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -28,8 +28,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
@@ -51,6 +49,8 @@ import java.util.Scanner;
  * different colors representing areas of high and low concentration/combined intensity of points.
  */
 public class HeatMapActivity extends BaseDemoActivity {
+
+    private static final String TAG = "HeatMapActivity";
 
     /**
      * Alternative radius for convolution
@@ -78,8 +78,7 @@ public class HeatMapActivity extends BaseDemoActivity {
             0.0f, 0.10f, 0.20f, 0.60f, 1.0f
     };
 
-    public static final Gradient ALT_HEATMAP_GRADIENT = new Gradient(ALT_HEATMAP_GRADIENT_COLORS,
-            ALT_HEATMAP_GRADIENT_START_POINTS);
+    public static final Gradient ALT_HEATMAP_GRADIENT = new Gradient(ALT_HEATMAP_GRADIENT_COLORS, ALT_HEATMAP_GRADIENT_START_POINTS);
 
     private HeatmapTileProvider mProvider;
     private TileOverlay mOverlay;
@@ -92,30 +91,23 @@ public class HeatMapActivity extends BaseDemoActivity {
      * Maps name of data set to data (list of LatLngs)
      * Also maps to the URL of the data set for attribution
      */
-    private HashMap<String, DataSet> mLists = new HashMap<String, DataSet>();
-
-    @Override
-    protected int getLayoutId() {
-        return R.layout.heatmaps_demo;
-    }
+    private HashMap<String, DataSet> mLists = new HashMap<>();
 
     @Override
     protected void startDemo() {
-        getMap().moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(-25, 143), 4));
+        Log.d(TAG, "startDemo: start");
+        getMap().moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(-25, 143), 5));
 
         // Set up the spinner/dropdown list
-        Spinner spinner = (Spinner) findViewById(R.id.spinner);
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.heatmaps_datasets_array, android.R.layout.simple_spinner_item);
+        Spinner spinner = findViewById(R.id.spinner);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.heatmaps_datasets_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
         spinner.setOnItemSelectedListener(new SpinnerActivity());
 
         try {
-            mLists.put(getString(R.string.police_stations), new DataSet(readItems(R.raw.police),
-                    getString(R.string.police_stations_url)));
-            mLists.put(getString(R.string.medicare), new DataSet(readItems(R.raw.medicare),
-                    getString(R.string.medicare_url)));
+            mLists.put(getString(R.string.police_stations), new DataSet(readItems(R.raw.police), getString(R.string.police_stations_url)));
+            mLists.put(getString(R.string.medicare), new DataSet(readItems(R.raw.medicare), getString(R.string.medicare_url)));
         } catch (JSONException e) {
             Toast.makeText(this, "Problem reading list of markers.", Toast.LENGTH_LONG).show();
         }
@@ -124,9 +116,11 @@ public class HeatMapActivity extends BaseDemoActivity {
         // Input: list of WeightedLatLngs, minimum and maximum zoom levels to calculate custom
         // intensity from, and the map to draw the heatmap on
         // radius, gradient and opacity not specified, so default are used
+        Log.d(TAG, "startDemo: end");
     }
 
     public void changeRadius(View view) {
+        Log.d(TAG, "changeRadius: start");
         if (mDefaultRadius) {
             mProvider.setRadius(ALT_HEATMAP_RADIUS);
         } else {
@@ -134,9 +128,11 @@ public class HeatMapActivity extends BaseDemoActivity {
         }
         mOverlay.clearTileCache();
         mDefaultRadius = !mDefaultRadius;
+        Log.d(TAG, "changeRadius: end");
     }
 
     public void changeGradient(View view) {
+        Log.d(TAG, "changeGradient: start");
         if (mDefaultGradient) {
             mProvider.setGradient(ALT_HEATMAP_GRADIENT);
         } else {
@@ -144,9 +140,11 @@ public class HeatMapActivity extends BaseDemoActivity {
         }
         mOverlay.clearTileCache();
         mDefaultGradient = !mDefaultGradient;
+        Log.d(TAG, "changeGradient: end");
     }
 
     public void changeOpacity(View view) {
+        Log.d(TAG, "changeOpacity: start");
         if (mDefaultOpacity) {
             mProvider.setOpacity(ALT_HEATMAP_OPACITY);
         } else {
@@ -154,45 +152,40 @@ public class HeatMapActivity extends BaseDemoActivity {
         }
         mOverlay.clearTileCache();
         mDefaultOpacity = !mDefaultOpacity;
-    }
-
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-
+        Log.d(TAG, "changeOpacity: end");
     }
 
     // Dealing with spinner choices
     public class SpinnerActivity implements AdapterView.OnItemSelectedListener {
-        public void onItemSelected(AdapterView<?> parent, View view,
-                                   int pos, long id) {
+        public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+            Log.d(TAG, "onItemSelected: start");
             String dataset = parent.getItemAtPosition(pos).toString();
-
-            TextView attribution = ((TextView) findViewById(R.id.attribution));
-
+//            TextView attribution = (findViewById(R.id.attribution));
             // Check if need to instantiate (avoid setData etc twice)
             if (mProvider == null) {
-                mProvider = new HeatmapTileProvider.Builder().data(
-                        mLists.get(getString(R.string.police_stations)).getData()).build();
+                mProvider = new HeatmapTileProvider.Builder().data(mLists.get(getString(R.string.police_stations)).getData()).build();
                 mOverlay = getMap().addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
                 // Render links
-                attribution.setMovementMethod(LinkMovementMethod.getInstance());
+//                attribution.setMovementMethod(LinkMovementMethod.getInstance());
             } else {
                 mProvider.setData(mLists.get(dataset).getData());
                 mOverlay.clearTileCache();
             }
             // Update attribution
-            attribution.setText(Html.fromHtml(String.format(getString(R.string.attrib_format),
-                    mLists.get(dataset).getUrl())));
-
+//            attribution.setText(Html.fromHtml(String.format(getString(R.string.attrib_format), mLists.get(dataset).getUrl())));
+            Log.d(TAG, "onItemSelected: end");
         }
 
         public void onNothingSelected(AdapterView<?> parent) {
+            Log.d(TAG, "onNothingSelected: start");
             // Another interface callback
+            Log.d(TAG, "onNothingSelected: end");
         }
     }
 
     // Datasets from http://data.gov.au
     private ArrayList<LatLng> readItems(int resource) throws JSONException {
+        Log.d(TAG, "readItems: start");
         ArrayList<LatLng> list = new ArrayList<LatLng>();
         InputStream inputStream = getResources().openRawResource(resource);
         String json = new Scanner(inputStream).useDelimiter("\\A").next();
@@ -203,6 +196,7 @@ public class HeatMapActivity extends BaseDemoActivity {
             double lng = object.getDouble("lng");
             list.add(new LatLng(lat, lng));
         }
+        Log.d(TAG, "readItems: end");
         return list;
     }
 
@@ -214,8 +208,10 @@ public class HeatMapActivity extends BaseDemoActivity {
         private String mUrl;
 
         public DataSet(ArrayList<LatLng> dataSet, String url) {
+            Log.d(TAG, "DataSet: start");
             this.mDataset = dataSet;
             this.mUrl = url;
+            Log.d(TAG, "DataSet: end");
         }
 
         public ArrayList<LatLng> getData() {

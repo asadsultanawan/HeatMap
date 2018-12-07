@@ -26,15 +26,16 @@ import com.google.android.gms.maps.SupportMapFragment;
 public abstract class BaseDemoActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
-    protected int getLayoutId() {
-        return R.layout.activity_maps;
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(getLayoutId());
         setUpMap();
+    }
+
+    protected int getLayoutId() {
+        return R.layout.heatmaps_demo;
     }
 
     @Override
@@ -64,4 +65,5 @@ public abstract class BaseDemoActivity extends FragmentActivity implements OnMap
     protected GoogleMap getMap() {
         return mMap;
     }
+
 }

@@ -2,8 +2,6 @@
     <string name="app_name">HeatMap</string>
     <string name="title_activity_maps">Map</string>
 
-
-
     <string name="input_text">Looking for…</string>
     <string name="button_send">Go!</string>
     <string name="police_stations">Police Stations in Victoria</string>
