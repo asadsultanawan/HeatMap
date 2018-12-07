@@ -253,9 +253,6 @@ public class HeatMapActivity extends FragmentActivity implements OnMapReadyCallb
         return list;
     }
 
-    /**
-     * Helper class - stores data sets and sources.
-     */
     private class DataSet {
         private ArrayList<LatLng> mDataset;
         private String mUrl;
