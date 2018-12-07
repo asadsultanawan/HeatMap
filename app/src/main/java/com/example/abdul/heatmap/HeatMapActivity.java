@@ -16,7 +16,10 @@
 
 package com.example.abdul.heatmap;
 
+import android.content.Intent;
 import android.graphics.Color;
+import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
@@ -28,6 +31,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
@@ -38,34 +44,17 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-/**
- * A demo of the Heatmaps library. Demonstrates how the HeatmapTileProvider can be used to create
- * a colored map overlay that visualises many points of weighted importance/intensity, with
- * different colors representing areas of high and low concentration/combined intensity of points.
- */
-public class HeatMapActivity extends BaseDemoActivity {
+public class HeatMapActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private static final String TAG = "HeatMapActivity";
-
-    /**
-     * Alternative radius for convolution
-     */
-    private static final int ALT_HEATMAP_RADIUS = 10;
-
-    /**
-     * Alternative opacity of heatmap overlay
-     */
+    private static final int ALT_HEATMAP_RADIUS = 100;
     private static final double ALT_HEATMAP_OPACITY = 0.4;
-
-    /**
-     * Alternative heatmap gradient (blue -> red)
-     * Copied from Javascript version
-     */
     private static final int[] ALT_HEATMAP_GRADIENT_COLORS = {
             Color.argb(0, 0, 255, 255),// transparent
             Color.argb(255 / 3 * 2, 0, 255, 255),
@@ -73,30 +62,81 @@ public class HeatMapActivity extends BaseDemoActivity {
             Color.rgb(0, 0, 127),
             Color.rgb(255, 0, 0)
     };
-
     public static final float[] ALT_HEATMAP_GRADIENT_START_POINTS = {
             0.0f, 0.10f, 0.20f, 0.60f, 1.0f
     };
-
     public static final Gradient ALT_HEATMAP_GRADIENT = new Gradient(ALT_HEATMAP_GRADIENT_COLORS, ALT_HEATMAP_GRADIENT_START_POINTS);
 
     private HeatmapTileProvider mProvider;
     private TileOverlay mOverlay;
+    private GoogleMap mMap;
+    private HashMap<String, DataSet> mLists = new HashMap<>();
 
     private boolean mDefaultGradient = true;
     private boolean mDefaultRadius = true;
     private boolean mDefaultOpacity = true;
-
-    /**
-     * Maps name of data set to data (list of LatLngs)
-     * Also maps to the URL of the data set for attribution
-     */
-    private HashMap<String, DataSet> mLists = new HashMap<>();
+    private String jsonData;
+    private double latitude, longitude;
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(getLayoutId());
+
+        Intent intent = getIntent();
+        jsonData = intent.getStringExtra("jsonData");
+        latitude = intent.getExtras().getDouble("latitude");
+        longitude = intent.getExtras().getDouble("longitude");
+        setUpMap();
+    }
+
+    private int getLayoutId() {
+        return R.layout.heatmaps_demo;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        setUpMap();
+    }
+
+    @Override
+    public void onMapReady(GoogleMap map) {
+        if (mMap != null) {
+            return;
+        }
+        mMap = map;
+        startDemo();
+    }
+
+    private void setUpMap() {
+        ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getMapAsync(this);
+    }
+
+    protected GoogleMap getMap() {
+        return mMap;
+    }
+
+    /**
+     * Run the demo-specific code.
+     */
     protected void startDemo() {
         Log.d(TAG, "startDemo: start");
-        getMap().moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(-25, 143), 5));
+        getMap().moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 12));
+
+        try {
+//            Log.d(TAG, "startDemo: readItems(jsonData) -> " + readItems(jsonData));
+            mLists.put(getString(R.string.police_stations), new DataSet(readItems(R.raw.police), getString(R.string.police_stations_url)));
+            mLists.put(getString(R.string.medicare), new DataSet(readItems(R.raw.medicare), getString(R.string.medicare_url)));
+            mLists.put(getString(R.string.gsm_signal), new DataSet(readItems(jsonData), "https://www.google.com"));
+        } catch (JSONException e) {
+            Log.d(TAG, "startDemo: e -> " + e.getMessage());
+            e.printStackTrace();
+            Toast.makeText(this, "Problem reading list of markers.", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Log.d(TAG, "startDemo: e -> " + e.getMessage());
+            Toast.makeText(this, "Big Exception.", Toast.LENGTH_LONG).show();
+        }
 
         // Set up the spinner/dropdown list
         Spinner spinner = findViewById(R.id.spinner);
@@ -104,13 +144,6 @@ public class HeatMapActivity extends BaseDemoActivity {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
         spinner.setOnItemSelectedListener(new SpinnerActivity());
-
-        try {
-            mLists.put(getString(R.string.police_stations), new DataSet(readItems(R.raw.police), getString(R.string.police_stations_url)));
-            mLists.put(getString(R.string.medicare), new DataSet(readItems(R.raw.medicare), getString(R.string.medicare_url)));
-        } catch (JSONException e) {
-            Toast.makeText(this, "Problem reading list of markers.", Toast.LENGTH_LONG).show();
-        }
 
         // Make the handler deal with the map
         // Input: list of WeightedLatLngs, minimum and maximum zoom levels to calculate custom
@@ -163,6 +196,7 @@ public class HeatMapActivity extends BaseDemoActivity {
 //            TextView attribution = (findViewById(R.id.attribution));
             // Check if need to instantiate (avoid setData etc twice)
             if (mProvider == null) {
+                Log.d(TAG, "onItemSelected: mLists -> " + mLists.get(getString(R.string.police_stations)).getData());
                 mProvider = new HeatmapTileProvider.Builder().data(mLists.get(getString(R.string.police_stations)).getData()).build();
                 mOverlay = getMap().addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
                 // Render links
@@ -186,14 +220,33 @@ public class HeatMapActivity extends BaseDemoActivity {
     // Datasets from http://data.gov.au
     private ArrayList<LatLng> readItems(int resource) throws JSONException {
         Log.d(TAG, "readItems: start");
-        ArrayList<LatLng> list = new ArrayList<LatLng>();
+        ArrayList<LatLng> list = new ArrayList<>();
         InputStream inputStream = getResources().openRawResource(resource);
         String json = new Scanner(inputStream).useDelimiter("\\A").next();
+        Log.d(TAG, "readItems: json -> " + json);
         JSONArray array = new JSONArray(json);
         for (int i = 0; i < array.length(); i++) {
             JSONObject object = array.getJSONObject(i);
             double lat = object.getDouble("lat");
             double lng = object.getDouble("lng");
+            list.add(new LatLng(lat, lng));
+        }
+        Log.d(TAG, "readItems: end");
+        return list;
+    }
+
+    private ArrayList<LatLng> readItems(String resource) throws JSONException {
+        Log.d(TAG, "readItems: start");
+        ArrayList<LatLng> list = new ArrayList<>();
+//        InputStream inputStream =
+        String json = new Scanner(resource).useDelimiter("\\A").next();
+        Log.d(TAG, "readItems: json -> " + json);
+        JSONArray array = new JSONArray(json);
+//        Log.d(TAG, "readItems: array -> " + array);
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject object = array.getJSONObject(i);
+            double lat = object.getDouble("latitude");
+            double lng = object.getDouble("longitude");
             list.add(new LatLng(lat, lng));
         }
         Log.d(TAG, "readItems: end");
