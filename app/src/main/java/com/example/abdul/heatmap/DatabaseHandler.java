@@ -20,7 +20,7 @@ public class DatabaseHandler {
         try {
             sqLiteDatabase = context.openOrCreateDatabase(DATABASE_NAME, Context.MODE_PRIVATE, null);
 //            sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
-            sqLiteDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (id INTEGER PRIMARY KEY, signalData DOUBLE(64, 48), longitude DOUBLE(64, 48), latitude DOUBLE(64, 48))");
+            sqLiteDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (id INTEGER PRIMARY KEY, signalData VARCHAR, longitude VARCHAR, latitude VARCHAR)");
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
             e.printStackTrace();

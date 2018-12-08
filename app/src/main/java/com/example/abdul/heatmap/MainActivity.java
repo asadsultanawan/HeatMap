@@ -14,7 +14,6 @@ import android.os.Bundle;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
@@ -44,7 +43,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         DatabaseHandler.initialize(this);
 
         locationTextView = findViewById(R.id.locationTextView);
@@ -57,8 +55,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         }
     }
 
-    public void setupSignalStrength() {
-        Log.d(TAG, "setupSignalStrength: starts");
+    public void getSignalStrength() {
+        Log.d(TAG, "getSignalStrength: starts");
         signalDBM = 0;
         final TelephonyManager manager = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
         PhoneStateListener phoneListener = new PhoneStateListener() {
@@ -76,20 +74,25 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                         }
                     }
                     signalTextView.setText("Signal Strength in dbm: " + signalDBM);
+                    signalData.add(new SignalData(signalDBM, latitude, longitude));
+                    Log.d(TAG, "onLocationChanged: signalData.getLast() -> " + signalData.getLast());
+                    Log.d(TAG, "onLocationChanged: length -> " + signalData.size());
+                    Toast.makeText(MainActivity.this, "size -> " + signalData.size(), Toast.LENGTH_SHORT).show();
+                    DatabaseHandler.insertData(MainActivity.this, signalData.getLast());
                 }
                 getLocation();
                 Log.d(TAG, "onSignalStrengthsChanged: ends");
             }
         };
         manager.listen(phoneListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
-        Log.d(TAG, "setupSignalStrength: ends");
+        Log.d(TAG, "getSignalStrength: ends");
     }
 
     public void getLocation() {
         Log.d(TAG, "getLocation: starts");
         try {
             locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5 * 1000, 0, MainActivity.this);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5 * 1000, 5, MainActivity.this);
         } catch (SecurityException e) {
             Toast.makeText(MainActivity.this, "error on getLocationButton Clicked", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
@@ -160,16 +163,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             locationTextView.setText(locationTextView.getText() + "\n" + addresses.get(0).getAddressLine(0) + ", " + addresses.get(0).getAddressLine(1) + ", " + addresses.get(0).getAddressLine(2));
             latitude = location.getLatitude();
             longitude = location.getLongitude();
-            Log.d(TAG, "onLocationChanged: longitude -> " + longitude + ", latitude -> " + latitude);
+            getSignalStrength();
+            Log.d(TAG, "onLocationChanged: signalDBM -> " + signalDBM + ", longitude -> " + longitude + ", latitude -> " + latitude);
         } catch (Exception e) {
             Toast.makeText(this, "error in onLocationChanged", Toast.LENGTH_SHORT).show();
             Log.d(TAG, "onLocationChanged: error in onLocationChanged");
-        } finally {
-            signalData.add(new SignalData(signalDBM, latitude, longitude));
-            Log.d(TAG, "onLocationChanged: signalData.getLast() -> " + signalData.getLast());
-            Log.d(TAG, "onLocationChanged: length -> " + signalData.size());
-            Toast.makeText(MainActivity.this, "size -> " + signalData.size(), Toast.LENGTH_SHORT).show();
-            DatabaseHandler.insertData(MainActivity.this, signalData.getLast());
         }
         Log.d(TAG, "onLocationChanged: ends");
     }
