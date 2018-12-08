@@ -6,6 +6,9 @@
         android:id="@+id/startRecording"
         android:title="Start Recording" />
     <item
+        android:id="@+id/stopRecording"
+        android:title="Stop Recording" />
+    <item
         android:id="@+id/showHeatMap"
         android:title="Show HeatMap" />
     <item
@@ -14,6 +17,9 @@
     <item
         android:id="@+id/deleteDatabase"
         android:title="Delete Database" />
+    <item
+        android:id="@+id/saveDataToFile"
+        android:title="Save Data to File" />
     <item
         android:id="@+id/about"
         android:title="About" />
